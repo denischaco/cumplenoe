@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Identidad Puzzle - ¡Feliz Cumple Noe!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- ESTILOS GENERALES Y FUENTES --- */
+        :root {
+            --primary-color: #ff7f50; /* Coral */
+            --secondary-color: #4a4a4a;
+            --background-color: #fffaf0; /* Floral White */
+            --correct-color: #28a745;
+            --incorrect-color: #dc3545;
+            --piece-hidden-bg: #333;
+            --font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--background-color);
+            color: var(--secondary-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        /* --- CONTENEDOR PRINCIPAL --- */
+        #game-container {
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        p.instructions {
+            line-height: 1.6;
+            margin-bottom: 25px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        button {
+            font-family: var(--font-family);
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        button:hover {
+            background-color: #ff6347; /* Tomato */
+            transform: translateY(-2px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #loader {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            margin-top: 20px;
+        }
+
+        /* --- TABLERO DEL PUZZLE --- */
+        #puzzle-board {
+            display: grid;
+            gap: 5px;
+            aspect-ratio: 1 / 1;
+            width: 100%;
+            max-width: 600px; /* Tamaño máximo del tablero */
+            margin: 20px auto;
+            background-color: #ccc;
+            border: 5px solid #fff;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border-radius: 12px;
+        }
+
+        .piece {
+            position: relative;
+            background-color: var(--piece-hidden-bg);
+            cursor: pointer;
+            overflow: hidden;
+            transition: transform 0.3s ease, background-color 0.3s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+            color: white;
+            border-radius: 4px;
+        }
+
+        .piece:hover:not(.solved):not(.failed) {
+            background-color: #555;
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        /* --- ESTADOS DE LAS PIEZAS --- */
+        .piece.solved {
+            background-size: cover;
+            background-repeat: no-repeat;
+            cursor: default;
+            animation: reveal 0.5s ease-in-out;
+        }
+
+        .piece.failed {
+            background-color: #1a1a1a;
+            cursor: not-allowed;
+            animation: shake 0.5s ease;
+        }
+
+        .piece-content {
+            background: rgba(0, 0, 0, 0.75);
+            padding: 15px;
+            border-radius: 8px;
+            width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .anecdote-text {
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            max-height: 120px;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        .author-select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+
+        /* --- MODAL DE MENSAJES --- */
+        #modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        #modal-content {
+            background-color: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            text-align: center;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: slide-in 0.5s ease-out;
+        }
+
+        #modal-title {
+            color: var(--primary-color);
+            margin-top: 0;
+        }
+
+        #modal-message {
+            white-space: pre-wrap;
+        }
+
+        /* --- ANIMACIONES --- */
+        @keyframes reveal {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        @keyframes slide-in {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* --- ANIMACIÓN CONFETTI --- */
+        #confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 2000;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: var(--primary-color);
+            opacity: 0.7;
+            animation: fall 5s linear infinite;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* --- RESPONSIVE DESIGN --- */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            h1 { font-size: 2rem; }
+            #puzzle-board { gap: 3px; }
+            .anecdote-text { font-size: 0.8rem; }
+            #modal-content { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen">
+            <h1>Identidad Puzzle</h1>
+            <p class="instructions">
+                ¡Bienvenido/a al puzzle de Noe! <br>
+                Haz clic en cada pieza para leer una anécdota. Luego, adivina quién la escribió.
+                Si aciertas, revelarás una parte de la foto sorpresa. Si fallas, la pieza se bloqueará.
+                ¡Resuelve todo el puzzle para ver el mensaje final!
+            </p>
+            <button id="start-button">Comenzar Juego</button>
+            <div id="loader" class="hidden">Cargando anécdotas...</div>
+            <div id="error-message" class="hidden" style="color: red; margin-top: 15px;"></div>
+        </div>
+
+        <div id="puzzle-board" class="hidden"></div>
+
+        <div id="modal-overlay" class="hidden">
+            <div id="modal-content">
+                <h2 id="modal-title"></h2>
+                <p id="modal-message"></p>
+                <button id="retry-button">Jugar de Nuevo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor para la animación de confetti -->
+    <div id="confetti-container"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- CONFIGURACIÓN PRINCIPAL ---
+        // ⬇️ 1. PEGA AQUÍ TU CLAVE DE API DE GOOGLE CLOUD
+        const API_KEY = 'AIzaSyChi5JFIvBbptGqSe67cIoU_49RtfX__ew'; // ¡IMPORTANTE!
+        //ClientID 135912155906-o1j23apupinafg4icc6god5unmkq060l.apps.googleusercontent.com
+        //ClientSecret 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
+        // ID de tu Google Spreadsheet
+        const SPREADSHEET_ID = '1THXqZ8jkjQvVkSqJWfLIuAJcjWxEhYOiPvySw6bw0rw';
+        
+        // ⬇️ 2. REEMPLAZA ESTA URL POR LA FOTO REAL DE NOELIA
+        // Sube la foto a un servicio como Imgur y pega aquí el enlace directo.
+        const TARGET_IMAGE_URL = './imagenes/fotonoecumple.jpg';
+
+        // --- ELEMENTOS DEL DOM ---
+        const startScreen = document.getElementById('start-screen');
+        const startButton = document.getElementById('start-button');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('error-message');
+        const puzzleBoard = document.getElementById('puzzle-board');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const retryButton = document.getElementById('retry-button');
+
+        // --- ESTADO DEL JUEGO ---
+        let allData = [];
+        let puzzlePieces = [];
+        let uniqueAuthors = [];
+        let gridSize = 0;
+        let solvedPieces = 0;
+        let failedPieces = 0;
+
+        // --- INICIO DEL JUEGO ---
+        startButton.addEventListener('click', async () => {
+            if (API_KEY === 'PON_TU_API_KEY_AQUI') {
+                showError("Error: Falta la Clave de API. Edita el código para agregarla.");
+                return;
+            }
+            errorMessage.classList.add('hidden');
+            startButton.classList.add('hidden');
+            loader.classList.remove('hidden');
+            await initializeGame();
+            loader.classList.add('hidden');
+        });
+
+        retryButton.addEventListener('click', () => {
+            modalOverlay.classList.add('hidden');
+            resetAndRestart();
+        });
+
+        function showError(message) {
+            errorMessage.innerText = message;
+            errorMessage.classList.remove('hidden');
+            loader.classList.add('hidden');
+            startButton.classList.remove('hidden');
+        }
+
+        async function initializeGame() {
+            try {
+                // 1. Obtener datos de Google Sheets
+                const range = 'B2:C6'; // Asume que los datos están en las columnas A y B
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`;
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    const detail = errorData.error.message || 'Error desconocido.';
+                    throw new Error(`No se pudo conectar con Google Sheets. Revisa que el ID de la hoja sea correcto, que sea pública (modo lector) y que la API Key sea válida. Detalle: ${detail}`);
+                }
+                const data = await response.json();
+                const rows = data.values || [];
+
+                // Limpiar y formatear datos (ignorando la fila de cabecera, si la hay)
+                allData = rows.slice(1)
+                    .map(row => ({ anecdote: row[0], name: row[1] }))
+                    .filter(item => item.anecdote && item.name && item.anecdote.trim() && item.name.trim());
+
+                if (allData.length < 4) {
+                    showError("Error: Se necesitan al menos 4 anécdotas completas en la hoja de cálculo para iniciar.");
+                    return;
+                }
+
+                // 2. Preparar el tablero
+                setupBoard();
+                startScreen.classList.add('hidden');
+                puzzleBoard.classList.remove('hidden');
+
+            } catch (error) {
+                console.error(error);
+                showError(error.message);
+            }
+        }
+
+        function setupBoard() {
+            puzzlePieces = [];
+            solvedPieces = 0;
+            failedPieces = 0;
+
+            const shuffledData = [...allData].sort(() => 0.5 - Math.random());
+            gridSize = Math.floor(Math.sqrt(shuffledData.length));
+            const totalPieces = gridSize * gridSize;
+            puzzlePieces = shuffledData.slice(0, totalPieces);
+
+            uniqueAuthors = [...new Set(allData.map(item => item.name))].sort();
+
+            renderBoard();
+        }
+
+        function renderBoard() {
+            puzzleBoard.innerHTML = '';
+            puzzleBoard.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            puzzleBoard.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+
+            puzzlePieces.forEach((data, index) => {
+                const piece = document.createElement('div');
+                piece.classList.add('piece');
+                piece.dataset.index = index;
+                piece.dataset.name = data.name;
+                piece.dataset.anecdote = data.anecdote;
+                
+                piece.addEventListener('click', handlePieceClick);
+                puzzleBoard.appendChild(piece);
+            });
+        }
+
+        function handlePieceClick(event) {
+            const piece = event.currentTarget;
+            const state = piece.dataset.state;
+
+            if (state === 'solved' || state === 'failed' || state === 'active') {
+                return;
+            }
+
+            // Ocultar otros popups abiertos
+            document.querySelectorAll('.piece[data-state="active"]').forEach(activePiece => {
+                if (activePiece !== piece) {
+                    activePiece.innerHTML = '';
+                    delete activePiece.dataset.state;
+                }
+            });
+
+            piece.dataset.state = 'active';
+            piece.innerHTML = `
+                <div class="piece-content">
+                    <p class="anecdote-text">"${piece.dataset.anecdote}"</p>
+                    <select class="author-select">
+                        <option value="">¿Quién escribió esto?</option>
+                        ${uniqueAuthors.map(author => `<option value="${author}">${author}</option>`).join('')}
+                    </select>
+                    <button class="check-button">Confirmar</button>
+                </div>
+            `;
+            
+            const checkButton = piece.querySelector('.check-button');
+            const authorSelect = piece.querySelector('.author-select');
+            
+            checkButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (authorSelect.value) {
+                    checkAnswer(piece, authorSelect.value);
+                }
+            });
+        }
+
+        function checkAnswer(piece, selectedName) {
+            const correctName = piece.dataset.name;
+            
+            if (selectedName === correctName) {
+                piece.innerHTML = '';
+                piece.classList.add('solved');
+                piece.dataset.state = 'solved';
+                
+                const pieceIndex = parseInt(piece.dataset.index);
+                const col = pieceIndex % gridSize;
+                const row = Math.floor(pieceIndex / gridSize);
+                
+                const bgPosX = (col * 100) / (gridSize > 1 ? gridSize - 1 : 1);
+                const bgPosY = (row * 100) / (gridSize > 1 ? gridSize - 1 : 1);
+
+                piece.style.backgroundImage = `url(${TARGET_IMAGE_URL})`;
+                piece.style.backgroundPosition = `${bgPosX}% ${bgPosY}%`;
+                piece.style.backgroundSize = `${gridSize * 100}%`;
+                
+                solvedPieces++;
+            } else {
+                piece.innerHTML = '';
+                piece.classList.add('failed');
+                piece.dataset.state = 'failed';
+                failedPieces++;
+            }
+            
+            checkGameStatus();
+        }
+
+        function checkGameStatus() {
+            const totalPieces = gridSize * gridSize;
+            if (solvedPieces === totalPieces) {
+                modalTitle.innerText = "¡Felicitaciones, lo lograste!";
+                modalMessage.innerText = "¡Feliz Cumpleaños Noe!\nNUESTRA IDENTIDAD SON LOS RECUERDOS QUE DEJAMOS EN LOS DEMÁS";
+                retryButton.innerText = "Jugar de Nuevo";
+                modalOverlay.classList.remove('hidden');
+                playConfetti();
+            } else if (solvedPieces + failedPieces === totalPieces) {
+                modalTitle.innerText = "¡Juego Terminado!";
+                modalMessage.innerText = `Resolviste ${solvedPieces} de ${totalPieces} anécdotas. ¡Inténtalo de nuevo para revelar la foto completa!`;
+                retryButton.innerText = "Reintentar";
+                modalOverlay.classList.remove('hidden');
+            }
+        }
+
+        function resetAndRestart() {
+            puzzleBoard.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+            startButton.classList.remove('hidden');
+            stopConfetti();
+        }
+
+        function playConfetti() {
+            const confettiContainer = document.getElementById('confetti-container');
+            confettiContainer.innerHTML = '';
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.left = `${Math.random() * 100}vw`;
+                confetti.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                confetti.style.animationDelay = `${Math.random() * 2}s`;
+                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 70%)`;
+                confettiContainer.appendChild(confetti);
+            }
+        }
+
+        function stopConfetti() {
+             document.getElementById('confetti-container').innerHTML = '';
+        }
+    });
+    </script>
+</body>
+</html>
