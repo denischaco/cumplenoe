@@ -30,6 +30,33 @@
             align-items: center;
             min-height: 100vh;
             box-sizing: border-box;
+            overflow: hidden; /* Evita scroll por animaciones */
+        }
+
+        /* --- NUEVO: FONDO ANIMADO --- */
+        #background-animation-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .floating-icon {
+            position: absolute;
+            bottom: -50px;
+            font-size: 2rem;
+            opacity: 0.5;
+            animation: floatUp 15s linear infinite;
+        }
+
+        @keyframes floatUp {
+            to {
+                transform: translateY(-110vh) rotate(600deg);
+                opacity: 0;
+            }
         }
 
         /* --- CONTENEDOR PRINCIPAL --- */
@@ -82,6 +109,15 @@
             color: var(--primary-color);
             margin-top: 20px;
         }
+        
+        /* --- NUEVO: TEXTO INTRO DEL PUZZLE --- */
+        #puzzle-intro {
+            font-size: 0.9rem;
+            color: #777;
+            max-width: 580px;
+            margin: 0 auto 20px auto;
+            line-height: 1.6;
+        }
 
         /* --- TABLERO DEL PUZZLE --- */
         #puzzle-board {
@@ -112,7 +148,6 @@
             z-index: 10;
         }
 
-        /* --- ESTADOS DE LAS PIEZAS --- */
         .piece.solved {
             background-size: cover;
             background-repeat: no-repeat;
@@ -126,7 +161,7 @@
             animation: shake 0.5s ease;
         }
 
-        /* --- MODAL DE PREGUNTA (NUEVO) --- */
+        /* --- MODAL DE PREGUNTA --- */
         #question-modal-overlay {
             position: fixed;
             top: 0;
@@ -160,7 +195,7 @@
             line-height: 1.6;
             margin-bottom: 25px;
             overflow-y: auto;
-            padding-right: 15px; /* Espacio para la barra de scroll */
+            padding-right: 15px;
             text-align: left;
         }
 
@@ -198,6 +233,23 @@
             max-width: 500px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
             animation: slide-in 0.5s ease-out;
+        }
+        
+        /* --- NUEVO: ESTILOS DE IMAGEN FINAL --- */
+        #final-image {
+            max-width: 80%;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        #final-image.glowing {
+            animation: image-glow 2.5s infinite ease-in-out;
+        }
+
+        @keyframes image-glow {
+            0%, 100% { box-shadow: 0 0 15px -5px gold, 0 0 30px -10px var(--primary-color); }
+            50% { box-shadow: 0 0 25px 5px gold, 0 0 40px 0px var(--primary-color); }
         }
 
         #modal-title {
@@ -276,6 +328,9 @@
     </style>
 </head>
 <body>
+    <!-- NUEVO: Contenedor para animación de fondo -->
+    <div id="background-animation-container"></div>
+
     <div id="game-container">
         <div id="start-screen">
             <h1>DESCUBRE A NOE</h1>
@@ -289,18 +344,25 @@
             <div id="error-message" class="hidden" style="color: red; margin-top: 15px;"></div>
         </div>
 
+        <!-- NUEVO: Texto introductorio del puzzle -->
+        <div id="puzzle-intro" class="hidden">
+            Éste puzzle esconde a Noelia detrás de varias anécdotas cargadas por sus seres queridos. Cuantas más anécdotas se cargaron, de más piezas se vuelve el puzzle, ¡así que lo construimos entre todos!
+        </div>
+
         <div id="puzzle-board" class="hidden"></div>
 
         <!-- MODAL DE RESULTADO FINAL -->
         <div id="modal-overlay" class="hidden">
             <div id="modal-content">
+                <!-- NUEVO: Imagen final revelada -->
+                <img id="final-image" src="" alt="Foto de Noelia" class="hidden">
                 <h2 id="modal-title"></h2>
                 <p id="modal-message"></p>
                 <button id="retry-button">Jugar de Nuevo</button>
             </div>
         </div>
         
-        <!-- MODAL DE PREGUNTA (NUEVO) -->
+        <!-- MODAL DE PREGUNTA -->
         <div id="question-modal-overlay" class="hidden">
             <div id="question-modal-content">
                 <div id="anecdote-display"></div>
@@ -335,20 +397,17 @@
         const startButton = document.getElementById('start-button');
         const loader = document.getElementById('loader');
         const errorMessage = document.getElementById('error-message');
+        const puzzleIntro = document.getElementById('puzzle-intro');
         const puzzleBoard = document.getElementById('puzzle-board');
-        
-        // Modales
         const modalOverlay = document.getElementById('modal-overlay');
         const modalTitle = document.getElementById('modal-title');
         const modalMessage = document.getElementById('modal-message');
         const retryButton = document.getElementById('retry-button');
-        
-        // Nuevos elementos del modal de pregunta
+        const finalImage = document.getElementById('final-image');
         const questionModalOverlay = document.getElementById('question-modal-overlay');
         const anecdoteDisplay = document.getElementById('anecdote-display');
         const questionAuthorSelect = document.getElementById('question-author-select');
         const questionConfirmButton = document.getElementById('question-confirm-button');
-
 
         // --- ESTADO DEL JUEGO ---
         let allData = [];
@@ -357,10 +416,12 @@
         let gridSize = 0;
         let solvedPieces = 0;
         let failedPieces = 0;
-        let currentPiece = null; // Guardará la pieza activa
+        let currentPiece = null;
 
-        // --- INICIO DEL JUEGO ---
-        startButton.addEventListener('click', async () => {
+        // --- INICIALIZACIÓN ---
+        createBackgroundIcons();
+
+        startButton.addEventListener('click', () => {
             if (API_KEY === 'PON_TU_API_KEY_AQUI' || API_KEY === '') {
                 showError("Error: Falta la Clave de API. Edita el código para agregarla.");
                 return;
@@ -368,8 +429,7 @@
             errorMessage.classList.add('hidden');
             startButton.classList.add('hidden');
             loader.classList.remove('hidden');
-            await initializeGame();
-            loader.classList.add('hidden');
+            initializeGame();
         });
 
         retryButton.addEventListener('click', () => {
@@ -377,7 +437,6 @@
             resetAndRestart();
         });
 
-        // --- LÓGICA DEL MODAL DE PREGUNTA ---
         questionConfirmButton.addEventListener('click', () => {
             const selectedName = questionAuthorSelect.value;
             if (selectedName && currentPiece) {
@@ -394,37 +453,46 @@
             startButton.classList.remove('hidden');
         }
 
-        async function initializeGame() {
-            try {
-                const range = 'B2:C6'; // Asume que los datos están en las columnas A y B
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`;
-                
-                const response = await fetch(url);
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    const detail = errorData.error.message || 'Error desconocido.';
-                    throw new Error(`No se pudo conectar con Google Sheets. Revisa que el ID de la hoja sea correcto, que sea pública (modo lector) y que la API Key sea válida. Detalle: ${detail}`);
-                }
-                const data = await response.json();
-                const rows = data.values || [];
+        // --- LÓGICA DEL JUEGO (REFACTORIZADO CON .THEN/.CATCH) ---
+        function initializeGame() {
+            const range = 'B2:C100'; // Asume que los datos están en las columnas A y B
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`;
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        // Para obtener detalles del error, parseamos el cuerpo de la respuesta, que también es asíncrono
+                        return response.json().then(errorData => {
+                            const detail = errorData.error.message || 'Error desconocido.';
+                            throw new Error(`No se pudo conectar con Google Sheets. Revisa que el ID de la hoja sea correcto, que sea pública (modo lector) y que la API Key sea válida. Detalle: ${detail}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const rows = data.values || [];
+                    allData = rows.slice(1)
+                        .map(row => ({ anecdote: row[0], name: row[1] }))
+                        .filter(item => item.anecdote && item.name && item.anecdote.trim() && item.name.trim());
 
-                allData = rows.slice(1)
-                    .map(row => ({ anecdote: row[0], name: row[1] }))
-                    .filter(item => item.anecdote && item.name && item.anecdote.trim() && item.name.trim());
+                    if (allData.length < 4) {
+                        showError("Error: Se necesitan al menos 4 anécdotas completas en la hoja de cálculo para iniciar.");
+                        return;
+                    }
 
-                if (allData.length < 4) {
-                    showError("Error: Se necesitan al menos 4 anécdotas completas en la hoja de cálculo para iniciar.");
-                    return;
-                }
-
-                setupBoard();
-                startScreen.classList.add('hidden');
-                puzzleBoard.classList.remove('hidden');
-
-            } catch (error) {
-                console.error(error);
-                showError(error.message);
-            }
+                    setupBoard();
+                    startScreen.classList.add('hidden');
+                    puzzleIntro.classList.remove('hidden');
+                    puzzleBoard.classList.remove('hidden');
+                })
+                .catch(error => {
+                    console.error(error);
+                    showError(error.message);
+                })
+                .finally(() => {
+                    // Ocultar el loader sin importar si hubo éxito o error
+                    loader.classList.add('hidden');
+                });
         }
 
         function setupBoard() {
@@ -462,14 +530,11 @@
         function handlePieceClick(event) {
             const piece = event.currentTarget;
             if (piece.classList.contains('solved') || piece.classList.contains('failed')) {
-                return; // No hacer nada si la pieza ya fue resuelta o fallada
+                return;
             }
             
-            currentPiece = piece; // Guardar la pieza actual
-            
-            // Llenar el modal con la información de la pieza
+            currentPiece = piece;
             anecdoteDisplay.innerText = `"${piece.dataset.anecdote}"`;
-            
             questionAuthorSelect.innerHTML = `<option value="">¿Quién escribió esto?</option>`;
             uniqueAuthors.forEach(author => {
                 const option = document.createElement('option');
@@ -478,7 +543,6 @@
                 questionAuthorSelect.appendChild(option);
             });
             
-            // Mostrar el modal
             questionModalOverlay.classList.remove('hidden');
         }
 
@@ -510,12 +574,17 @@
         function checkGameStatus() {
             const totalPieces = gridSize * gridSize;
             if (solvedPieces === totalPieces) {
+                finalImage.src = TARGET_IMAGE_URL;
+                finalImage.classList.remove('hidden');
+                finalImage.classList.add('glowing');
                 modalTitle.innerText = "¡Felicitaciones, lo lograste!";
                 modalMessage.innerText = "¡Feliz Cumpleaños Noe!\nNUESTRA IDENTIDAD SON LOS RECUERDOS QUE DEJAMOS EN LOS DEMÁS";
                 retryButton.innerText = "Jugar de Nuevo";
                 modalOverlay.classList.remove('hidden');
                 playConfetti();
             } else if (solvedPieces + failedPieces === totalPieces) {
+                finalImage.classList.add('hidden');
+                finalImage.classList.remove('glowing');
                 modalTitle.innerText = "¡Juego Terminado!";
                 modalMessage.innerText = `Resolviste ${solvedPieces} de ${totalPieces} anécdotas. ¡Inténtalo de nuevo para revelar la foto completa!`;
                 retryButton.innerText = "Reintentar";
@@ -524,9 +593,12 @@
         }
 
         function resetAndRestart() {
+            puzzleIntro.classList.add('hidden');
             puzzleBoard.classList.add('hidden');
             startScreen.classList.remove('hidden');
             startButton.classList.remove('hidden');
+            finalImage.classList.add('hidden');
+            finalImage.classList.remove('glowing');
             stopConfetti();
         }
 
@@ -546,6 +618,23 @@
 
         function stopConfetti() {
              document.getElementById('confetti-container').innerHTML = '';
+        }
+
+        function createBackgroundIcons() {
+            const container = document.getElementById('background-animation-container');
+            const icons = ['🎂', '🎈', '🎉', '🎁', '💖', '✨'];
+            const iconCount = 20;
+
+            for (let i = 0; i < iconCount; i++) {
+                const icon = document.createElement('span');
+                icon.classList.add('floating-icon');
+                icon.innerText = icons[Math.floor(Math.random() * icons.length)];
+                icon.style.left = `${Math.random() * 100}vw`;
+                icon.style.animationDelay = `${Math.random() * 15}s`;
+                icon.style.animationDuration = `${10 + Math.random() * 10}s`;
+                icon.style.fontSize = `${1 + Math.random() * 1.5}rem`;
+                container.appendChild(icon);
+            }
         }
     });
     </script>
