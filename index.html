@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Identidad Puzzle - ¡Feliz Cumple Noe!</title>
+    <title>DESCUBRE A NOE - ¡Feliz Cumple!</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
@@ -41,16 +41,18 @@
 
         h1 {
             color: var(--primary-color);
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             margin-bottom: 10px;
+            font-weight: 700;
         }
 
         p.instructions {
-            line-height: 1.6;
-            margin-bottom: 25px;
+            line-height: 1.7;
+            margin-bottom: 30px;
             max-width: 600px;
             margin-left: auto;
             margin-right: auto;
+            font-size: 1.1rem;
         }
 
         button {
@@ -101,13 +103,6 @@
             cursor: pointer;
             overflow: hidden;
             transition: transform 0.3s ease, background-color 0.3s;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 10px;
-            box-sizing: border-box;
-            color: white;
             border-radius: 4px;
         }
 
@@ -131,33 +126,54 @@
             animation: shake 0.5s ease;
         }
 
-        .piece-content {
-            background: rgba(0, 0, 0, 0.75);
-            padding: 15px;
-            border-radius: 8px;
-            width: 90%;
-            max-height: 90%;
-            overflow-y: auto;
+        /* --- MODAL DE PREGUNTA (NUEVO) --- */
+        #question-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 900;
+            padding: 20px;
             box-sizing: border-box;
+            animation: fadeIn 0.3s ease;
         }
 
-        .anecdote-text {
-            font-size: 0.9rem;
-            margin-bottom: 15px;
-            max-height: 120px;
+        #question-modal-content {
+            background-color: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+        }
+        
+        #anecdote-display {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 25px;
             overflow-y: auto;
+            padding-right: 15px; /* Espacio para la barra de scroll */
             text-align: left;
         }
 
-        .author-select {
+        #question-controls select {
             width: 100%;
-            padding: 8px;
-            border-radius: 4px;
+            padding: 12px;
+            border-radius: 8px;
             border: 1px solid #ccc;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 1rem;
         }
 
-        /* --- MODAL DE MENSAJES --- */
+        /* --- MODAL DE RESULTADO FINAL --- */
         #modal-overlay {
             position: fixed;
             top: 0;
@@ -215,6 +231,11 @@
                 opacity: 1;
             }
         }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
 
         /* --- ANIMACIÓN CONFETTI --- */
         #confetti-container {
@@ -247,22 +268,21 @@
         /* --- RESPONSIVE DESIGN --- */
         @media (max-width: 600px) {
             body { padding: 10px; }
-            h1 { font-size: 2rem; }
+            h1 { font-size: 2.2rem; }
             #puzzle-board { gap: 3px; }
-            .anecdote-text { font-size: 0.8rem; }
-            #modal-content { padding: 20px; }
+            #modal-content, #question-modal-content { padding: 20px; }
+            #anecdote-display { font-size: 1rem; }
         }
     </style>
 </head>
 <body>
     <div id="game-container">
         <div id="start-screen">
-            <h1>Identidad Puzzle</h1>
+            <h1>DESCUBRE A NOE</h1>
             <p class="instructions">
-                ¡Bienvenido/a al puzzle de Noe! <br>
-                Haz clic en cada pieza para leer una anécdota. Luego, adivina quién la escribió.
-                Si aciertas, revelarás una parte de la foto sorpresa. Si fallas, la pieza se bloqueará.
-                ¡Resuelve todo el puzzle para ver el mensaje final!
+                ¡El puzzle de Noe está listo para ti!<br>
+                Revela quién está detrás de cada anécdota para descubrir a Noelia.
+                ¡Acierta todas las piezas y llévate una gran sorpresa!
             </p>
             <button id="start-button">Comenzar Juego</button>
             <div id="loader" class="hidden">Cargando anécdotas...</div>
@@ -271,6 +291,7 @@
 
         <div id="puzzle-board" class="hidden"></div>
 
+        <!-- MODAL DE RESULTADO FINAL -->
         <div id="modal-overlay" class="hidden">
             <div id="modal-content">
                 <h2 id="modal-title"></h2>
@@ -278,6 +299,18 @@
                 <button id="retry-button">Jugar de Nuevo</button>
             </div>
         </div>
+        
+        <!-- MODAL DE PREGUNTA (NUEVO) -->
+        <div id="question-modal-overlay" class="hidden">
+            <div id="question-modal-content">
+                <div id="anecdote-display"></div>
+                <div id="question-controls">
+                    <select id="question-author-select"></select>
+                    <button id="question-confirm-button">Confirmar</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Contenedor para la animación de confetti -->
@@ -289,8 +322,7 @@
         // --- CONFIGURACIÓN PRINCIPAL ---
         // ⬇️ 1. PEGA AQUÍ TU CLAVE DE API DE GOOGLE CLOUD
         const API_KEY = 'AIzaSyChi5JFIvBbptGqSe67cIoU_49RtfX__ew'; // ¡IMPORTANTE!
-        //ClientID 135912155906-o1j23apupinafg4icc6god5unmkq060l.apps.googleusercontent.com
-        //ClientSecret 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
+
         // ID de tu Google Spreadsheet
         const SPREADSHEET_ID = '1THXqZ8jkjQvVkSqJWfLIuAJcjWxEhYOiPvySw6bw0rw';
         
@@ -304,10 +336,19 @@
         const loader = document.getElementById('loader');
         const errorMessage = document.getElementById('error-message');
         const puzzleBoard = document.getElementById('puzzle-board');
+        
+        // Modales
         const modalOverlay = document.getElementById('modal-overlay');
         const modalTitle = document.getElementById('modal-title');
         const modalMessage = document.getElementById('modal-message');
         const retryButton = document.getElementById('retry-button');
+        
+        // Nuevos elementos del modal de pregunta
+        const questionModalOverlay = document.getElementById('question-modal-overlay');
+        const anecdoteDisplay = document.getElementById('anecdote-display');
+        const questionAuthorSelect = document.getElementById('question-author-select');
+        const questionConfirmButton = document.getElementById('question-confirm-button');
+
 
         // --- ESTADO DEL JUEGO ---
         let allData = [];
@@ -316,10 +357,11 @@
         let gridSize = 0;
         let solvedPieces = 0;
         let failedPieces = 0;
+        let currentPiece = null; // Guardará la pieza activa
 
         // --- INICIO DEL JUEGO ---
         startButton.addEventListener('click', async () => {
-            if (API_KEY === 'PON_TU_API_KEY_AQUI') {
+            if (API_KEY === 'AIzaSyChi5JFIvBbptGqSe67cIoU_49RtfX__ew' || API_KEY === '') {
                 showError("Error: Falta la Clave de API. Edita el código para agregarla.");
                 return;
             }
@@ -335,6 +377,16 @@
             resetAndRestart();
         });
 
+        // --- LÓGICA DEL MODAL DE PREGUNTA ---
+        questionConfirmButton.addEventListener('click', () => {
+            const selectedName = questionAuthorSelect.value;
+            if (selectedName && currentPiece) {
+                checkAnswer(currentPiece, selectedName);
+                questionModalOverlay.classList.add('hidden');
+                currentPiece = null;
+            }
+        });
+
         function showError(message) {
             errorMessage.innerText = message;
             errorMessage.classList.remove('hidden');
@@ -344,7 +396,6 @@
 
         async function initializeGame() {
             try {
-                // 1. Obtener datos de Google Sheets
                 const range = 'B2:C6'; // Asume que los datos están en las columnas A y B
                 const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`;
                 
@@ -357,7 +408,6 @@
                 const data = await response.json();
                 const rows = data.values || [];
 
-                // Limpiar y formatear datos (ignorando la fila de cabecera, si la hay)
                 allData = rows.slice(1)
                     .map(row => ({ anecdote: row[0], name: row[1] }))
                     .filter(item => item.anecdote && item.name && item.anecdote.trim() && item.name.trim());
@@ -367,7 +417,6 @@
                     return;
                 }
 
-                // 2. Preparar el tablero
                 setupBoard();
                 startScreen.classList.add('hidden');
                 puzzleBoard.classList.remove('hidden');
@@ -412,51 +461,32 @@
 
         function handlePieceClick(event) {
             const piece = event.currentTarget;
-            const state = piece.dataset.state;
-
-            if (state === 'solved' || state === 'failed' || state === 'active') {
-                return;
+            if (piece.classList.contains('solved') || piece.classList.contains('failed')) {
+                return; // No hacer nada si la pieza ya fue resuelta o fallada
             }
-
-            // Ocultar otros popups abiertos
-            document.querySelectorAll('.piece[data-state="active"]').forEach(activePiece => {
-                if (activePiece !== piece) {
-                    activePiece.innerHTML = '';
-                    delete activePiece.dataset.state;
-                }
-            });
-
-            piece.dataset.state = 'active';
-            piece.innerHTML = `
-                <div class="piece-content">
-                    <p class="anecdote-text">"${piece.dataset.anecdote}"</p>
-                    <select class="author-select">
-                        <option value="">¿Quién escribió esto?</option>
-                        ${uniqueAuthors.map(author => `<option value="${author}">${author}</option>`).join('')}
-                    </select>
-                    <button class="check-button">Confirmar</button>
-                </div>
-            `;
             
-            const checkButton = piece.querySelector('.check-button');
-            const authorSelect = piece.querySelector('.author-select');
+            currentPiece = piece; // Guardar la pieza actual
             
-            checkButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (authorSelect.value) {
-                    checkAnswer(piece, authorSelect.value);
-                }
+            // Llenar el modal con la información de la pieza
+            anecdoteDisplay.innerText = `"${piece.dataset.anecdote}"`;
+            
+            questionAuthorSelect.innerHTML = `<option value="">¿Quién escribió esto?</option>`;
+            uniqueAuthors.forEach(author => {
+                const option = document.createElement('option');
+                option.value = author;
+                option.innerText = author;
+                questionAuthorSelect.appendChild(option);
             });
+            
+            // Mostrar el modal
+            questionModalOverlay.classList.remove('hidden');
         }
 
         function checkAnswer(piece, selectedName) {
             const correctName = piece.dataset.name;
             
             if (selectedName === correctName) {
-                piece.innerHTML = '';
                 piece.classList.add('solved');
-                piece.dataset.state = 'solved';
-                
                 const pieceIndex = parseInt(piece.dataset.index);
                 const col = pieceIndex % gridSize;
                 const row = Math.floor(pieceIndex / gridSize);
@@ -470,9 +500,7 @@
                 
                 solvedPieces++;
             } else {
-                piece.innerHTML = '';
                 piece.classList.add('failed');
-                piece.dataset.state = 'failed';
                 failedPieces++;
             }
             
